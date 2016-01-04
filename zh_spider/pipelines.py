@@ -8,4 +8,5 @@
 
 class ZhSpiderPipeline(object):
     def process_item(self, item, spider):
+        print 'in zhihu spider .............'
         return item
