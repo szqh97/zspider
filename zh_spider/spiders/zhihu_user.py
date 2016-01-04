@@ -17,8 +17,7 @@ class  ZhihuUserSpider(scrapy.Spider):
 
     start_urls = (
         'https://www.zhihu.com/people/excited-vczh',
-        #'https://www.zhihu.com/people/excited-vczh',
-        'https://www.zhihu.com/people/cao-miao-miao-26',
+        #'https://www.zhihu.com/people/cao-miao-miao-26',
     )
 
     followees = {}
@@ -41,13 +40,33 @@ class  ZhihuUserSpider(scrapy.Spider):
 
 
     def parse_followers_request(self, response):
-        pass
+        user_page = response.xpath('//div[@class="title-section ellipsis"]/a').xpath('@href').extract()[0]
+        zhihu_id = user_page.split('/')[-1]
+        str_curr_person_info = response.xpath('//script[@data-name="current_people"]/text()').extract()[0]
+        hash_id = json.loads(str_curr_person_info)[-1]
+        followers_xpth_herf = os.path.join(user_page, 'followers')
+        followers_number = response.xpath('//div[@class="zm-profile-side-following zg-clear"]/a[@href="{0}"]/strong/text()'.format(followers_xpth_herf)).extract()[0]
+        user_info_followers = {
+                'zhihu_id': zhihu_id,
+                'followers_number': int(followers_number),
+                'followers': []
+                }
+
+        for p in response.xpath('//h2[@class="zm-list-content-title"]/a'):
+            followee = {}
+            followee['page_url'] = p.xpath('@href').extract()[0]
+            followee['name'] = p.xpath('text()').extract()[0]
+            followee['zhihu_id'] = p.xpath('@data-tip').extract()[0].split('p$t$')[-1]
+            user_info_followers['followers'].append(followee)
+
+        return user_info_followers
 
     def parse(self, response):
         pass
 
     def parse_followees_request(self, response):
         user_page = response.xpath('//div[@class="title-section ellipsis"]/a').xpath('@href').extract()[0]
+        zhihu_id = user_page.split('/')[-1]
         _xsrf = response.xpath('//input[@name="_xsrf"]').xpath("@value").extract()[0]
         self.logger.debug("xsrf is %s", _xsrf)
         str_curr_person_info = response.xpath('//script[@data-name="current_people"]/text()').extract()[0]
@@ -62,6 +81,7 @@ class  ZhihuUserSpider(scrapy.Spider):
         # get top 20 followees
         user_info = {
                 'user_page': user_page,
+                'zhihu_id': zhihu_id,
                 'xsrf': _xsrf,
                 'hash_id': hash_id,
                 'followees': [],
