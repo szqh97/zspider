@@ -48,8 +48,15 @@ class  ZhihuUserSpider(scrapy.Spider):
 
         user_info = {}
         # FIXME add hash_id or other
-        user_page = response.xpath('//a[@class="name"]').xpath('@href').extract()[0]
-        user_info['user_page'] = user_page
+        try:
+            user_page = response.xpath('//a[@class="name"]').xpath('@href').extract()[0]
+            user_info['user_page'] = user_page
+            str_curr_person_info = response.xpath('//script[@data-name="current_people"]/text()').extract()[0]
+            hash_id = json.loads(str_curr_person_info)[-1]
+            user_info['hash_id'] = hash_id
+        except Exception, e:
+            self.logger.error('{0}'.format(traceback.format_exc()))
+
         try:
             user_weibo = response.xpath('//a[@class="zm-profile-header-user-weibo"]').xpath('@href').extract()[0]
             weibo_tip = response.xpath('//a[@class="zm-profile-header-user-weibo"]').xpath('@data-tip').extract()[0].split('s$b$')[-1]
@@ -119,7 +126,9 @@ class  ZhihuUserSpider(scrapy.Spider):
 
 
     def parse_followers_request(self, response):
+        user_info = {}
         user_page = response.xpath('//div[@class="title-section ellipsis"]/a').xpath('@href').extract()[0]
+        user_info['user_page'] = user_page
         zhihu_id = user_page.split('/')[-1]
         str_curr_person_info = response.xpath('//script[@data-name="current_people"]/text()').extract()[0]
         hash_id = json.loads(str_curr_person_info)[-1]
@@ -127,8 +136,10 @@ class  ZhihuUserSpider(scrapy.Spider):
         followers_number = response.xpath('//div[@class="zm-profile-side-following zg-clear"]/a[@href="{0}"]/strong/text()'.format(followers_xpth_herf)).extract()[0]
         user_info_followers = {
                 'zhihu_id': zhihu_id,
+                'user_page': user_page,
                 'followers_number': int(followers_number),
-                'followers': []
+                'followers': [],
+                'hash_id': hash_id
                 }
 
         for p in response.xpath('//h2[@class="zm-list-content-title"]/a'):
